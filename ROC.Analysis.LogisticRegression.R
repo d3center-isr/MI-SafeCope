@@ -124,6 +124,7 @@ Analyze.ROC <- function(Variable.fit, Outcome){
 }
 
 
+
 #***********************************************************************************************************#
 # Fit Logistic Regression Classifiers using mean and variance by cumulative week 2
 #***********************************************************************************************************#
@@ -558,8 +559,7 @@ write.csv(odds.ratio.table, "odds.ratio.table.csv")
 #***********************************************************************************************************#
 
 # Fit logistic regression model
-fit <- glm(m1_binaryoutcome ~ mean.Miserable.2 + var.Miserable.2 + mean.Hopelessness.2 
-           + mean.Self_Efficacy.2 + Intervention, 
+fit <- glm(m1_binaryoutcome ~ mean.Miserable.2 + mean.Hopelessness.2 + mean.Self_Efficacy.2 + mean.Duration_Combined.2 , 
            data = m1.data,
            family = "binomial"
 )
@@ -580,5 +580,57 @@ write.csv(t(odds.ratio.fit), "odds.ratio.table.csv")
 #***********************************************************************************************************#
 # Cut-off Region Corresponding to Threshold Determined by AUC
 #***********************************************************************************************************#
+
+# ROC Curve and cut-offs for model with mean.Miserable.2, mean.Hopelessness.2, and mean.Self_Efficacy.2
+
+p <- 0.14 # optimal cutoff
+coef.intercept <- 1.75
+coef.mean.miserable <- 1.46
+coef.mean.hopelessness <- -1.59
+coef.mean.self_efficacy <- -0.50
+
+plotdat <- expand.grid(mean.self.efficacy=4:10, mean.miserable=2:4, mean.hopelessness = NA)
+
+for(i in 1:dim(plotdat)[1]){
+  plotdat$mean.hopelessness[i] <- (1/coef.mean.hopelessness)*
+    ((log(p/(1-p)))-coef.intercept-coef.mean.miserable*plotdat$mean.miserable[i]-coef.mean.self_efficacy*plotdat$mean.self.efficacy[i])
+}
+
+plotdat <- arrange(plotdat, mean.self.efficacy)
+
+write.csv(round(plotdat, digits=1), "cutoffs.csv", row.names=FALSE)
+
+# ROC Curve and cut-offs for model with Intervention and mean.Duration_Combined.2
+
+p <- 0.16 # optimal cutoff
+coef.intercept <- -1.92
+coef.mean.duration <- 1.20
+coef.intervention <- -2.22
+
+plotdat <- expand.grid(intervention=0:1, mean.duration = NA)
+
+for(i in 1:dim(plotdat)[1]){
+  plotdat$mean.duration[i] <- (1/coef.mean.duration)*
+    ((log(p/(1-p)))-coef.intercept-coef.intervention*plotdat$intervention[i])
+}
+
+write.csv(round(plotdat, digits=1), "cutoffs.csv", row.names=FALSE)
+
+# ROC Curve and cut-offs for model with mean.Duration_Combined.2
+
+p <- 0.13 # optimal cutoff
+coef.intercept <- -2.33
+coef.mean.duration <- 0.72
+
+plotdat <- expand.grid(mean.duration = NA)
+
+for(i in 1:dim(plotdat)[1]){
+  plotdat$mean.duration[i] <- (1/coef.mean.duration)*
+    ((log(p/(1-p)))-coef.intercept)
+}
+
+write.csv(round(plotdat, digits=1), "cutoffs.csv", row.names=FALSE)
+
+
 
 
