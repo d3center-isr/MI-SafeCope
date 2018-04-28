@@ -93,7 +93,7 @@ Analyze.ROC <- function(Variable.fit, Outcome){
     roc.obj <- plot.roc(data.for.roc$m1_binaryoutcome, 
                         data.for.roc$probs,
                         print.auc=TRUE,
-                        ci=FALSE,
+                        ci=TRUE,
                         legacy.axes=TRUE,
                         asp=NA,
                         thresholds="best",
@@ -113,7 +113,7 @@ Analyze.ROC <- function(Variable.fit, Outcome){
     roc.obj <- plot.roc(data.for.roc$m3cum_binaryoutcome, 
                         data.for.roc$probs,
                         print.auc=TRUE,
-                        ci=FALSE,
+                        ci=TRUE,
                         legacy.axes=TRUE,
                         asp=NA,
                         thresholds="best",
@@ -124,6 +124,23 @@ Analyze.ROC <- function(Variable.fit, Outcome){
 }
 
 
+#***********************************************************************************************************#
+# Summary statistics of cumulativ week 2 features
+#***********************************************************************************************************#
+
+summary.table.cumweek2 <- m1.data %>% select(mean.Miserable.2,
+                                             mean.Hopelessness.2, 
+                                             mean.Burdensomeness.2, 
+                                             mean.Connectedness.2,
+                                             mean.Self_Efficacy.2,
+                                             mean.Duration_Combined.2,
+                                             var.Miserable.2, 
+                                             var.Hopelessness.2, 
+                                             var.Burdensomeness.2, 
+                                             var.Connectedness.2,
+                                             var.Self_Efficacy.2,
+                                             var.Duration_Combined.2) %>%
+  summarise_all(funs(mean, var, min, max)) %>% round(digits=2) %>% t(.)
 
 #***********************************************************************************************************#
 # Fit Logistic Regression Classifiers using mean and variance by cumulative week 2
@@ -233,7 +250,7 @@ row.names(odds.ratio.table) <- c("Miserable","Hopelessness","Burdensomeness",
 write.csv(odds.ratio.table, "odds.ratio.table.csv")
 
 #***********************************************************************************************************#
-# Fit Logistic Regression Classifiers using mean and variance by cumulative week 2
+# Fit Logistic Regression Classifiers using mean and variance and intervention by cumulative week 2
 #***********************************************************************************************************#
 
 # Fit logistic regression model
@@ -559,7 +576,24 @@ write.csv(odds.ratio.table, "odds.ratio.table.csv")
 #***********************************************************************************************************#
 
 # Fit logistic regression model
-fit <- glm(m1_binaryoutcome ~ mean.Miserable.2 + mean.Hopelessness.2 + mean.Self_Efficacy.2 + mean.Duration_Combined.2 , 
+fit <- glm(m1_binaryoutcome ~ mean.Miserable.2*
+             var.Miserable.2*
+             miss.SI.2
+           , 
+           data = m1.data,
+           family = "binomial"
+)
+
+fit <- glm(m1_binaryoutcome ~ mean.Self_Efficacy.2 *
+             var.Self_Efficacy.2 
+           , 
+           data = m1.data,
+           family = "binomial"
+)
+
+fit <- glm(m1_binaryoutcome ~ max.Duration_Combined.2
+            * var.Duration_Combined.2 * miss.SI.2
+           , 
            data = m1.data,
            family = "binomial"
 )
