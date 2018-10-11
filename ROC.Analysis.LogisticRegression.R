@@ -663,4 +663,27 @@ roc.2 <- Analyze.ROC(fit2, "m1_binaryoutcome")
 
 roc.test(roc.1, roc.2, method = "delong")
 
+#***********************************************************************************************************#
+#  Calculate estimated IDI
+#***********************************************************************************************************#
 
+# Simple model
+old.model <- fit
+
+# More complex model
+new.model <- fit2
+
+old.predicted.probs <- predict.glm(old.model, newdata = m1.data, type = "response")
+new.predicted.probs <- predict.glm(new.model, newdata = m1.data, type = "response")
+diff.predicted.probs <- new.predicted.probs - old.predicted.probs
+m1.data$old.predicted.probs <- old.predicted.probs
+m1.data$new.predicted.probs <- new.predicted.probs
+m1.data$diff.predicted.probs <- diff.predicted.probs
+participants.event <- m1.data[m1.data$m1_binaryoutcome == 1 & !is.na(m1.data$m1_binaryoutcome),]
+participants.nonevent <- m1.data[m1.data$m1_binaryoutcome == 0 & !is.na(m1.data$m1_binaryoutcome),]
+
+
+estimated.IDI <- mean(participants.event$new.predicted.probs) - mean(participants.event$old.predicted.probs) - 
+  mean(participants.nonevent$new.predicted.probs) + mean(participants.nonevent$old.predicted.probs)
+
+estimated.IDI
