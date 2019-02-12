@@ -77,6 +77,9 @@ all.data$Intervention <- as.factor(all.data$Intervention)
 m1.data <- subset(all.data,select = -m3cum_binaryoutcome)
 m3.data <- subset(all.data,select = -m1_binaryoutcome)
 
+write.csv(m1.data, "m1.data.csv", row.names = FALSE)
+write.csv(m3.data, "m3.data.csv", row.names = FALSE)
+
 #***********************************************************************************************************#
 # Settings to compute the optimal probability cut-off for logistic regression classifier
 #***********************************************************************************************************#
