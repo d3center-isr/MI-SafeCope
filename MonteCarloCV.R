@@ -54,44 +54,50 @@ GetHoldoutPredProb <- function(dat.list, fo = my_fo, outcome="m1_binaryoutcome")
 
 
 
+# Run loop --------------------------------------------------------------------
+list.store.holdout.AUC <- as.list(rep(NA, 2000))
 
-# Data ------------------------------------------------------------------------
-m1.data <- read.csv("m1.data.csv", header = TRUE)
-m1.data <- m1.data[!is.na(m1.data$m1_binaryoutcome),]
-m1.data.ones <- m1.data[m1.data$m1_binaryoutcome==1,]
-row.names(m1.data.ones) <- 1:nrow(m1.data.ones)
-m1.data.zeros <- m1.data[m1.data$m1_binaryoutcome==0,]
-row.names(m1.data.zeros) <- 1:nrow(m1.data.zeros)
+for(i in 1:2000){
+  # Data ------------------------------------------------------------------------
+  m1.data <- read.csv("m1.data.csv", header = TRUE)
+  m1.data <- m1.data[!is.na(m1.data$m1_binaryoutcome),]
+  m1.data.ones <- m1.data[m1.data$m1_binaryoutcome==1,]
+  row.names(m1.data.ones) <- 1:nrow(m1.data.ones)
+  m1.data.zeros <- m1.data[m1.data$m1_binaryoutcome==0,]
+  row.names(m1.data.zeros) <- 1:nrow(m1.data.zeros)
+  
+  # Get Data for k-fold cross validation ----------------------------------------
+  ones.folds <- cvFolds(nrow(m1.data.ones), K = nrow(m1.data.ones), type = "random")
+  zeros.folds <- cvFolds(nrow(m1.data.zeros), K = nrow(m1.data.ones), type = "random")
+  
+  dat.ones.folds <- data.frame(fold = ones.folds$which, index = ones.folds$subsets)
+  dat.zeros.folds <- data.frame(fold = zeros.folds$which, index = zeros.folds$subsets)
+  dat.ones.folds <- dat.ones.folds[order(dat.ones.folds$index) ,]
+  dat.zeros.folds <- dat.zeros.folds[order(dat.zeros.folds$index) ,]
+  
+  m1.data.ones$index <- as.numeric(row.names(m1.data.ones))
+  m1.data.zeros$index <- as.numeric(row.names(m1.data.zeros))
+  m1.data.ones <- merge(m1.data.ones, dat.ones.folds, all.x = TRUE, all.y = TRUE, by = "index")
+  m1.data.zeros <- merge(m1.data.zeros, dat.zeros.folds, all.x = TRUE, all.y = TRUE, by = "index")
+  
+  m1.data <- rbind(m1.data.ones, m1.data.zeros)
+  
+  all.dat <- lapply(1:nrow(m1.data.ones), GetValidationDat)
+  
+  # Get Predicted Probabilities -------------------------------------------------
+  all.predicted.probs.dat <- lapply(all.dat, GetHoldoutPredProb)
+  all.holdout.auc <- lapply(all.predicted.probs.dat, function(this.holdout){
+    roc.obj <- roc(this.holdout$actual.outcome, this.holdout$this.participant.pred.prob)
+    return(roc.obj$auc)
+  })
+  
+  # Calculate AUC on hold out sets and then take the average of AUC across all --
+  all.holdout.auc <- do.call(rbind, all.holdout.auc)
+  list.store.holdout.AUC[[i]] <- all.holdout.auc
+}
 
-# Get Data for k-fold cross validation ----------------------------------------
-ones.folds <- cvFolds(nrow(m1.data.ones), K = nrow(m1.data.ones), type = "random")
-zeros.folds <- cvFolds(nrow(m1.data.zeros), K = nrow(m1.data.ones), type = "random")
+store.holdout.AUC <- do.call(cbind, list.store.holdout.AUC)
+est.holdout.AUC <- mean(store.holdout.AUC)
 
-dat.ones.folds <- data.frame(fold = ones.folds$which, index = ones.folds$subsets)
-dat.zeros.folds <- data.frame(fold = zeros.folds$which, index = zeros.folds$subsets)
-dat.ones.folds <- dat.ones.folds[order(dat.ones.folds$index) ,]
-dat.zeros.folds <- dat.zeros.folds[order(dat.zeros.folds$index) ,]
-
-m1.data.ones$index <- as.numeric(row.names(m1.data.ones))
-m1.data.zeros$index <- as.numeric(row.names(m1.data.zeros))
-m1.data.ones <- merge(m1.data.ones, dat.ones.folds, all.x = TRUE, all.y = TRUE, by = "index")
-m1.data.zeros <- merge(m1.data.zeros, dat.zeros.folds, all.x = TRUE, all.y = TRUE, by = "index")
-
-m1.data <- rbind(m1.data.ones, m1.data.zeros)
-
-all.dat <- lapply(1:nrow(m1.data.ones), GetValidationDat)
-
-# Get Predicted Probabilities -------------------------------------------------
-all.predicted.probs.dat <- lapply(all.dat, GetHoldoutPredProb)
-all.holdout.auc <- lapply(all.predicted.probs.dat, function(this.holdout){
-  roc.obj <- roc(this.holdout$actual.outcome, this.holdout$this.participant.pred.prob)
-  return(roc.obj$auc)
-})
-
-# Calculate AUC on hold out sets and then take the average of AUC across all --
-all.holdout.auc <- do.call(rbind, all.holdout.auc)
-est.holdout.AUC <- mean(all.holdout.auc)
-
-#print(all.holdout.AUC)
 print(est.holdout.AUC)
 
