@@ -97,7 +97,8 @@ for(i in 1:2000){
 }
 
 store.holdout.AUC <- do.call(cbind, list.store.holdout.AUC)
-est.holdout.AUC <- mean(store.holdout.AUC)
+repeats.AUC <- colMeans(store.holdout.AUC)
+repeatedCV.estimate.AUC <- mean(repeats.AUC)
 
-print(est.holdout.AUC)
+print(repeatedCV.estimate.AUC)
 
